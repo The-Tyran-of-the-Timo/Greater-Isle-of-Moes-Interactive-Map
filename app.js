@@ -7,46 +7,65 @@
 const layerConfigs = [
   {
     id: 'parks',
-    file: 'data/GIM_Parks.geojson',
+    source: { type: 'geojson', data: 'data/GIM_Parks.geojson' },
     type: 'fill',
-    paint: {
+    style: {
       'fill-color': '#4CAF50',
       'fill-opacity': 0.4
-    }
+    },
+    popupFields: ['name', 'type', 'description'],
+    labelField: 'name'
   },
+
   {
     id: 'river',
-    file: 'data/GIM_river.geojson',
+    source: { type: 'geojson', data: 'data/GIM_river.geojson' },
     type: 'line',
-    paint: {
+    style: {
       'line-color': '#1E88E5',
       'line-width': 2
-    }
+    },
+    popupFields: ['name', 'length'],
+    labelField: 'name'
   },
+
+  // -------------------------
+  // POI (UPDATED: FILTER SUPPORT)
+  // -------------------------
   {
     id: 'poi',
-    file: 'data/GIM_POI.geojson',
+    source: { type: 'geojson', data: 'data/GIM_POI.geojson' },
     type: 'circle',
-    paint: {
+    style: {
       'circle-radius': 5,
       'circle-color': '#ff5722'
     },
-    labels: true
-  },
-  {
-    id: 'outline',
-    file: 'data/GIM_outline_box.geojson',
-    type: 'line',
-    paint: {
-      'line-color': '#000000',
-      'line-width': 2
+    popupFields: ['name', 'Description', 'Type'],
+    labelField: 'name',
+
+    // ✅ NEW: sub-category system
+    filters: {
+      category: ['City', 'Village', 'Peak','Structure']
     }
   },
+
+  {
+    id: 'outline',
+    source: { type: 'geojson', data: 'data/GIM_outline_box.geojson' },
+    type: 'line',
+    style: {
+      'line-color': '#000000',
+      'line-width': 2
+    },
+    popupFields: [],
+    labelField: null
+  },
+
   {
     id: 'elevation',
-    file: 'data/GIM_elevation.geojson',
+    source: { type: 'geojson', data: 'data/GIM_elevation.geojson' },
     type: 'fill',
-    paint: {
+    style: {
       'fill-color': [
         'interpolate',
         ['linear'],
@@ -57,7 +76,9 @@ const layerConfigs = [
         600, '#1c7ed6'
       ],
       'fill-opacity': 0.5
-    }
+    },
+    popupFields: ['height'],
+    labelField: null
   }
 ];
 
@@ -72,18 +93,12 @@ const map = new maplibregl.Map({
     sources: {
       osm: {
         type: 'raster',
-        tiles: [
-          'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-        ],
+        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
         tileSize: 256
       }
     },
     layers: [
-      {
-        id: 'osm',
-        type: 'raster',
-        source: 'osm'
-      }
+      { id: 'osm', type: 'raster', source: 'osm' }
     ]
   },
   center: [-117.3, -50.9],
@@ -92,21 +107,17 @@ const map = new maplibregl.Map({
 
 
 // -------------------------
-// SAFE GEOJSON LOADER
+// LOAD GEOJSON
 // -------------------------
 async function loadJSON(path) {
   const res = await fetch(path);
-
-  if (!res.ok) {
-    throw new Error(`❌ Failed to load ${path} (${res.status})`);
-  }
-
+  if (!res.ok) throw new Error(`❌ Failed to load ${path}`);
   return res.json();
 }
 
 
 // -------------------------
-// TOGGLE FUNCTION
+// TOGGLE LAYER
 // -------------------------
 function toggleLayer(layerId, visible) {
   map.setLayoutProperty(
@@ -118,10 +129,31 @@ function toggleLayer(layerId, visible) {
 
 
 // -------------------------
-// AUTO CREATE TOGGLE UI
+// POI FILTER FUNCTION
+// -------------------------
+function setPOIFilter(category) {
+
+  if (!category) {
+    map.setFilter('poi-layer', null);
+    return;
+  }
+
+  map.setFilter('poi-layer', [
+    'all',
+    ['has', 'Type'],  // ensures field exists
+    [
+      '==',
+      ['to-string', ['get', 'Type']],
+      String(category)
+    ]
+  ]);
+}
+
+
+// -------------------------
+// AUTO UI
 // -------------------------
 function createLayerToggle(layerId, label) {
-
   const menu = document.getElementById('menu');
 
   const container = document.createElement('div');
@@ -130,9 +162,7 @@ function createLayerToggle(layerId, label) {
   checkbox.type = 'checkbox';
   checkbox.checked = true;
 
-  checkbox.onchange = () => {
-    toggleLayer(layerId, checkbox.checked);
-  };
+  checkbox.onchange = () => toggleLayer(layerId, checkbox.checked);
 
   const text = document.createElement('label');
   text.innerText = ' ' + label;
@@ -145,23 +175,56 @@ function createLayerToggle(layerId, label) {
 
 
 // -------------------------
-// MAIN MAP LOGIC
+// POI FILTER UI
+// -------------------------
+function createPOIFilterUI(layerConfig) {
+
+  const menu = document.getElementById('menu');
+
+  const wrapper = document.createElement('div');
+  wrapper.style.marginTop = '10px';
+
+  const title = document.createElement('div');
+  title.innerHTML = '<b>POI Filter</b>';
+  wrapper.appendChild(title);
+
+  // ALL
+  const allBtn = document.createElement('button');
+  allBtn.innerText = 'All';
+  allBtn.onclick = () => setPOIFilter(null);
+  wrapper.appendChild(allBtn);
+
+  wrapper.appendChild(document.createElement('br'));
+
+  for (const cat of layerConfig.filters.category) {
+
+    const btn = document.createElement('button');
+    btn.innerText = cat;
+
+    btn.onclick = () => setPOIFilter(cat);
+
+    wrapper.appendChild(btn);
+  }
+
+  menu.appendChild(wrapper);
+}
+
+
+// -------------------------
+// MAP LOAD
 // -------------------------
 map.on('load', async () => {
 
   try {
 
-    // -------------------------
-    // LOAD ALL LAYERS
-    // -------------------------
     for (const layer of layerConfigs) {
 
-      const data = await loadJSON(layer.file);
+      const data = await loadJSON(layer.source.data);
 
       // SOURCE
       map.addSource(layer.id, {
         type: 'geojson',
-        data: data
+        data
       });
 
       // MAIN LAYER
@@ -169,33 +232,35 @@ map.on('load', async () => {
         id: `${layer.id}-layer`,
         type: layer.type,
         source: layer.id,
-        paint: layer.paint
+        paint: layer.style
       });
 
-      // AUTO TOGGLE
       createLayerToggle(`${layer.id}-layer`, layer.id);
 
-      // OPTIONAL LABELS
-      if (layer.labels) {
+      // POI FILTER UI (ONLY FOR POI)
+      if (layer.id === 'poi' && layer.filters) {
+        createPOIFilterUI(layer);
+      }
+
+      // LABELS
+      if (layer.labelField) {
 
         map.addLayer({
           id: `${layer.id}-labels`,
           type: 'symbol',
           source: layer.id,
           layout: {
-            'text-field': ['get', 'name'],
+            'text-field': ['get', layer.labelField],
             'text-size': 12,
             'text-offset': [0, 1.2],
             'text-anchor': 'top'
           },
           paint: {
-            'text-color': '#000000',
-            'text-halo-color': '#ffffff',
+            'text-color': '#000',
+            'text-halo-color': '#fff',
             'text-halo-width': 1
           }
         });
-
-        createLayerToggle(`${layer.id}-labels`, `${layer.id} labels`);
       }
     }
 
@@ -203,7 +268,7 @@ map.on('load', async () => {
 
 
     // -------------------------
-    // CLICK POPUPS
+    // POPUPS (UNCHANGED SAFE VERSION)
     // -------------------------
     map.on('click', (e) => {
 
@@ -212,28 +277,31 @@ map.on('load', async () => {
       if (!features.length) return;
 
       const feature = features[0];
-      const props = feature.properties;
+      const props = feature.properties || {};
 
-      let html = `
-        <div style="
-          font-family:sans-serif;
-          font-size:12px;
-          max-width:250px;
-        ">
-      `;
+      let html = `<div style="font-family:sans-serif;font-size:12px;max-width:250px;">`;
 
-      for (const key in props) {
+      const keys = Object.keys(props);
 
-        if (key === 'id') continue;
+      if (!keys.length) {
+        html += `<i>No attributes available</i>`;
+      } else {
 
-        html += `
-          <div style="margin-bottom:4px;">
-            <b>${key}:</b> ${props[key]}
-          </div>
-        `;
+        for (const key of keys) {
+
+          const value = props[key];
+
+          if (value === null || value === undefined || value === '') continue;
+
+          html += `
+            <div style="margin-bottom:4px;">
+              <b>${key}:</b> ${String(value)}
+            </div>
+          `;
+        }
       }
 
-      html += '</div>';
+      html += `</div>`;
 
       new maplibregl.Popup()
         .setLngLat(e.lngLat)
@@ -241,20 +309,8 @@ map.on('load', async () => {
         .addTo(map);
     });
 
-
-    // -------------------------
-    // POINTER CURSOR
-    // -------------------------
-    map.on('mouseenter', () => {
-      map.getCanvas().style.cursor = 'pointer';
-    });
-
-    map.on('mouseleave', () => {
-      map.getCanvas().style.cursor = '';
-    });
-
   } catch (err) {
-    console.error("❌ MAP LOADING ERROR:", err);
+    console.error("❌ MAP ERROR:", err);
   }
 
 });
