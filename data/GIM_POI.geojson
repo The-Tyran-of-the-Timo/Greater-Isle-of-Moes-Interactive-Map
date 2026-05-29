@@ -1,0 +1,18 @@
+{
+"type": "FeatureCollection",
+"name": "GIM POI",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": 1, "Description": "Solivta", "Type": "City", "CoordX": -13027136, "CoordY": -6559958 }, "geometry": { "type": "Point", "coordinates": [ -117.024754462221992, -50.651952418145491 ] } },
+{ "type": "Feature", "properties": { "fid": 2, "Description": "Filicivta", "Type": "City", "CoordX": -13101686, "CoordY": -6582770 }, "geometry": { "type": "Point", "coordinates": [ -117.694448730147286, -50.781701295831205 ] } },
+{ "type": "Feature", "properties": { "fid": 3, "Description": "Rugelivta", "Type": "City", "CoordX": -13096743, "CoordY": -6671222 }, "geometry": { "type": "Point", "coordinates": [ -117.650045882284829, -51.281398450997102 ] } },
+{ "type": "Feature", "properties": { "fid": 4, "Description": "Baveivta", "Type": "City", "CoordX": -12933888, "CoordY": -6598119 }, "geometry": { "type": "Point", "coordinates": [ -116.187088894817194, -50.868799961397549 ] } },
+{ "type": "Feature", "properties": { "fid": 5, "Description": "Kâdiba", "Type": "Village", "CoordX": -13050696, "CoordY": -6626215 }, "geometry": { "type": "Point", "coordinates": [ -117.236398299566332, -51.027814062931853 ] } },
+{ "type": "Feature", "properties": { "fid": 6, "Description": "Te Isorexkrevisse", "Type": "Peak", "CoordX": -13040875, "CoordY": -6655547 }, "geometry": { "type": "Point", "coordinates": [ -117.148176851839651, -51.193241804027686 ] } },
+{ "type": "Feature", "properties": { "fid": 7, "Description": "Te Mekulu Uereses", "Type": "Peak", "CoordX": -13025852, "CoordY": -6627971 }, "geometry": { "type": "Point", "coordinates": [ -117.013215564257791, -51.037734386574193 ] } },
+{ "type": "Feature", "properties": { "fid": 8, "Description": "Te Heis Kad", "Type": "Peak", "CoordX": -12989170, "CoordY": -6624849 }, "geometry": { "type": "Point", "coordinates": [ -116.683699693278655, -51.020096787456723 ] } },
+{ "type": "Feature", "properties": { "fid": 9, "Description": "Te Sympas", "Type": "Peak", "CoordX": -12995934, "CoordY": -6594151 }, "geometry": { "type": "Point", "coordinates": [ -116.74446148509044, -50.846302741728678 ] } },
+{ "type": "Feature", "properties": { "fid": 10, "Description": "Te Trikos Uereses", "Type": "Peak", "CoordX": -12949497, "CoordY": -6557080 }, "geometry": { "type": "Point", "coordinates": [ -116.327308414382799, -50.635558007985487 ] } },
+{ "type": "Feature", "properties": { "fid": 11, "Description": "Nuclear Plant Tevmek", "Type": "Structure", "CoordX": -13056940, "CoordY": -6706928 }, "geometry": { "type": "Point", "coordinates": [ -117.292486107392619, -51.481589707303314 ] } }
+]
+}
