@@ -1,6 +1,70 @@
 // to run: python -m http.server
 // to open: http://localhost:8000
 
+// -------------------------
+// LAYER CONFIGURATION
+// -------------------------
+const layerConfigs = [
+  {
+    id: 'parks',
+    file: 'data/GIM_Parks.geojson',
+    type: 'fill',
+    paint: {
+      'fill-color': '#4CAF50',
+      'fill-opacity': 0.4
+    }
+  },
+  {
+    id: 'river',
+    file: 'data/GIM_river.geojson',
+    type: 'line',
+    paint: {
+      'line-color': '#1E88E5',
+      'line-width': 2
+    }
+  },
+  {
+    id: 'poi',
+    file: 'data/GIM_POI.geojson',
+    type: 'circle',
+    paint: {
+      'circle-radius': 5,
+      'circle-color': '#ff5722'
+    },
+    labels: true
+  },
+  {
+    id: 'outline',
+    file: 'data/GIM_outline_box.geojson',
+    type: 'line',
+    paint: {
+      'line-color': '#000000',
+      'line-width': 2
+    }
+  },
+  {
+    id: 'elevation',
+    file: 'data/GIM_elevation.geojson',
+    type: 'fill',
+    paint: {
+      'fill-color': [
+        'interpolate',
+        ['linear'],
+        ['get', 'height'],
+        0, '#d9f0ff',
+        100, '#74c0fc',
+        300, '#339af0',
+        600, '#1c7ed6'
+      ],
+      'fill-opacity': 0.5
+    }
+  }
+];
+
+
+// -------------------------
+// MAP
+// -------------------------
 const map = new maplibregl.Map({
   container: 'map',
   style: {
@@ -22,7 +86,7 @@ const map = new maplibregl.Map({
       }
     ]
   },
-  center: [-117.3, -50.9], // island centre
+  center: [-117.3, -50.9],
   zoom: 7
 });
 
@@ -40,10 +104,10 @@ async function loadJSON(path) {
   return res.json();
 }
 
+
 // -------------------------
 // TOGGLE FUNCTION
 // -------------------------
-
 function toggleLayer(layerId, visible) {
   map.setLayoutProperty(
     layerId,
@@ -51,6 +115,34 @@ function toggleLayer(layerId, visible) {
     visible ? 'visible' : 'none'
   );
 }
+
+
+// -------------------------
+// AUTO CREATE TOGGLE UI
+// -------------------------
+function createLayerToggle(layerId, label) {
+
+  const menu = document.getElementById('menu');
+
+  const container = document.createElement('div');
+
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.checked = true;
+
+  checkbox.onchange = () => {
+    toggleLayer(layerId, checkbox.checked);
+  };
+
+  const text = document.createElement('label');
+  text.innerText = ' ' + label;
+
+  container.appendChild(checkbox);
+  container.appendChild(text);
+
+  menu.appendChild(container);
+}
+
 
 // -------------------------
 // MAIN MAP LOGIC
@@ -60,111 +152,58 @@ map.on('load', async () => {
   try {
 
     // -------------------------
-    // LOAD DATA
+    // LOAD ALL LAYERS
     // -------------------------
-    const coords = await loadJSON('data/GIM_coords.geojson');
-    const elevation = await loadJSON('data/GIM_elevation.geojson');
-    const outline = await loadJSON('data/GIM_outline_box.geojson');
-    const parks = await loadJSON('data/GIM_Parks.geojson');
-    const poi = await loadJSON('data/GIM_POI.geojson');
-    const river = await loadJSON('data/GIM_river.geojson');
+    for (const layer of layerConfigs) {
 
-    console.log("✅ All files loaded successfully");
+      const data = await loadJSON(layer.file);
+
+      // SOURCE
+      map.addSource(layer.id, {
+        type: 'geojson',
+        data: data
+      });
+
+      // MAIN LAYER
+      map.addLayer({
+        id: `${layer.id}-layer`,
+        type: layer.type,
+        source: layer.id,
+        paint: layer.paint
+      });
+
+      // AUTO TOGGLE
+      createLayerToggle(`${layer.id}-layer`, layer.id);
+
+      // OPTIONAL LABELS
+      if (layer.labels) {
+
+        map.addLayer({
+          id: `${layer.id}-labels`,
+          type: 'symbol',
+          source: layer.id,
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-size': 12,
+            'text-offset': [0, 1.2],
+            'text-anchor': 'top'
+          },
+          paint: {
+            'text-color': '#000000',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 1
+          }
+        });
+
+        createLayerToggle(`${layer.id}-labels`, `${layer.id} labels`);
+      }
+    }
+
+    console.log("✅ All layers loaded");
+
 
     // -------------------------
-    // SOURCES
-    // -------------------------
-    map.addSource('coords', { type: 'geojson', data: coords });
-    map.addSource('elevation', { type: 'geojson', data: elevation });
-    map.addSource('outline', { type: 'geojson', data: outline });
-    map.addSource('parks', { type: 'geojson', data: parks });
-    map.addSource('poi', { type: 'geojson', data: poi });
-    map.addSource('river', { type: 'geojson', data: river });
-
-    // -------------------------
-    // LAYERS
-    // -------------------------
-
-    // Outline
-    map.addLayer({
-      id: 'outline-layer',
-      type: 'line',
-      source: 'outline',
-      paint: {
-        'line-color': '#000000',
-        'line-width': 2
-      }
-    });
-
-    // Parks
-    map.addLayer({
-      id: 'parks-layer',
-      type: 'fill',
-      source: 'parks',
-      paint: {
-        'fill-color': '#4CAF50',
-        'fill-opacity': 0.4
-      }
-    });
-
-    // Rivers
-    map.addLayer({
-      id: 'river-layer',
-      type: 'line',
-      source: 'river',
-      paint: {
-        'line-color': '#1E88E5',
-        'line-width': 2
-      }
-    });
-
-    // Elevation
-    map.addLayer({
-      id: 'elevation-layer',
-      type: 'fill',
-      source: 'elevation',
-      paint: {
-        'fill-color': [
-          'interpolate',
-          ['linear'],
-          ['get', 'height'],
-          0, '#d9f0ff',
-          100, '#74c0fc',
-          300, '#339af0',
-          600, '#1c7ed6'
-        ],
-        'fill-opacity': 0.5
-      }
-    });
-
-    // POIs
-    map.addLayer({
-      id: 'poi-layer',
-      type: 'circle',
-      source: 'poi',
-      paint: {
-        'circle-radius': 5,
-        'circle-color': '#ff5722'
-      }
-    });
-    map.addLayer({
-      id: 'poi-labels',
-      type: 'symbol',
-      source: 'poi',
-      layout: {
-        'text-field': ['get', 'name'],
-        'text-size': 12,
-        'text-offset': [0, 1.2],
-        'text-anchor': 'top'
-      },
-      paint: {
-        'text-color': '#000000',
-        'text-halo-color': '#ffffff',
-        'text-halo-width': 1
-      }
-    });
-    // -------------------------
-    // INTERACTIVITY (POIs)
+    // CLICK POPUPS
     // -------------------------
     map.on('click', (e) => {
 
@@ -175,10 +214,23 @@ map.on('load', async () => {
       const feature = features[0];
       const props = feature.properties;
 
-      let html = '<div style="font-family:sans-serif; font-size:12px;">';
+      let html = `
+        <div style="
+          font-family:sans-serif;
+          font-size:12px;
+          max-width:250px;
+        ">
+      `;
 
       for (const key in props) {
-        html += `<div><b>${key}:</b> ${props[key]}</div>`;
+
+        if (key === 'id') continue;
+
+        html += `
+          <div style="margin-bottom:4px;">
+            <b>${key}:</b> ${props[key]}
+          </div>
+        `;
       }
 
       html += '</div>';
@@ -187,21 +239,17 @@ map.on('load', async () => {
         .setLngLat(e.lngLat)
         .setHTML(html)
         .addTo(map);
-    
-
-      html += '</div>';
-
-      new maplibregl.Popup()
-        .setLngLat(e.lngLat)
-        .setHTML(html)
-        .addTo(map);
     });
 
-    map.on('mouseenter', 'poi-layer', () => {
+
+    // -------------------------
+    // POINTER CURSOR
+    // -------------------------
+    map.on('mouseenter', () => {
       map.getCanvas().style.cursor = 'pointer';
     });
 
-    map.on('mouseleave', 'poi-layer', () => {
+    map.on('mouseleave', () => {
       map.getCanvas().style.cursor = '';
     });
 
@@ -210,6 +258,3 @@ map.on('load', async () => {
   }
 
 });
-
-// to run: python -m http.server
-// to open: http://localhost:8000
