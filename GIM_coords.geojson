@@ -1,0 +1,12 @@
+{
+"type": "FeatureCollection",
+"name": "GIM coords",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": 1, "CoordX": -117.253, "CoordY": -50.936 }, "geometry": { "type": "Point", "coordinates": [ -117.253277813131135, -50.93608331862297 ] } },
+{ "type": "Feature", "properties": { "fid": 2, "CoordX": -13163141.696807435, "CoordY": -6458885.6120159281 }, "geometry": { "type": "Point", "coordinates": [ -118.246513732730918, -50.07275695955088 ] } },
+{ "type": "Feature", "properties": { "fid": 3, "CoordX": -6557646.4409193303, "CoordY": -6557646.4409193303 }, "geometry": { "type": "Point", "coordinates": [ -115.638340141471744, -50.638787580575404 ] } },
+{ "type": "Feature", "properties": { "fid": 4, "CoordX": -6761105.1479840716, "CoordY": -6761105.1479840716 }, "geometry": { "type": "Point", "coordinates": [ -116.260041893535259, -51.783674517905617 ] } },
+{ "type": "Feature", "properties": { "fid": 5, "CoordX": -6662344.3190806694, "CoordY": -6662344.3190806694 }, "geometry": { "type": "Point", "coordinates": [ -118.868215484790554, -51.231490515004154 ] } }
+]
+}
