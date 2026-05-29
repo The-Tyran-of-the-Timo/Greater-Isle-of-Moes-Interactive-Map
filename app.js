@@ -29,9 +29,6 @@ const layerConfigs = [
     labelField: 'name'
   },
 
-  // -------------------------
-  // POI (UPDATED: FILTER SUPPORT)
-  // -------------------------
   {
     id: 'poi',
     source: { type: 'geojson', data: 'data/GIM_POI.geojson' },
@@ -43,9 +40,8 @@ const layerConfigs = [
     popupFields: ['name', 'Description', 'Type'],
     labelField: 'name',
 
-    // ✅ NEW: sub-category system
     filters: {
-      category: ['City', 'Village', 'Peak','Structure']
+      category: ['City', 'Village', 'Peak', 'Structure']
     }
   },
 
@@ -82,7 +78,6 @@ const layerConfigs = [
   }
 ];
 
-
 // -------------------------
 // MAP
 // -------------------------
@@ -105,7 +100,6 @@ const map = new maplibregl.Map({
   zoom: 7
 });
 
-
 // -------------------------
 // LOAD GEOJSON
 // -------------------------
@@ -115,9 +109,8 @@ async function loadJSON(path) {
   return res.json();
 }
 
-
 // -------------------------
-// TOGGLE LAYER
+// TOGGLE LAYER VISIBILITY
 // -------------------------
 function toggleLayer(layerId, visible) {
   map.setLayoutProperty(
@@ -127,33 +120,37 @@ function toggleLayer(layerId, visible) {
   );
 }
 
+// -------------------------
+// POI STATE
+// -------------------------
+const poiState = {
+  activeCategories: new Set()
+};
 
 // -------------------------
-// POI FILTER FUNCTION
+// APPLY POI FILTER
 // -------------------------
-function setPOIFilter(category) {
+function applyPOIFilter() {
 
-  if (!category) {
+  const cats = Array.from(poiState.activeCategories);
+
+  if (cats.length === 0) {
     map.setFilter('poi-layer', null);
     return;
   }
 
   map.setFilter('poi-layer', [
-    'all',
-    ['has', 'Type'],  // ensures field exists
-    [
-      '==',
-      ['to-string', ['get', 'Type']],
-      String(category)
-    ]
+    'in',
+    ['get', 'Type'],
+    ['literal', cats]
   ]);
 }
 
-
 // -------------------------
-// AUTO UI
+// LAYER UI
 // -------------------------
 function createLayerToggle(layerId, label) {
+
   const menu = document.getElementById('menu');
 
   const container = document.createElement('div');
@@ -173,9 +170,8 @@ function createLayerToggle(layerId, label) {
   menu.appendChild(container);
 }
 
-
 // -------------------------
-// POI FILTER UI
+// POI COLLAPSIBLE FILTER MENU
 // -------------------------
 function createPOIFilterUI(layerConfig) {
 
@@ -184,31 +180,127 @@ function createPOIFilterUI(layerConfig) {
   const wrapper = document.createElement('div');
   wrapper.style.marginTop = '10px';
 
-  const title = document.createElement('div');
-  title.innerHTML = '<b>POI Filter</b>';
-  wrapper.appendChild(title);
+  // HEADER
+  const header = document.createElement('div');
+  header.style.display = 'flex';
+  header.style.alignItems = 'center';
+  header.style.gap = '6px';
 
-  // ALL
-  const allBtn = document.createElement('button');
-  allBtn.innerText = 'All';
-  allBtn.onclick = () => setPOIFilter(null);
-  wrapper.appendChild(allBtn);
+  const master = document.createElement('input');
+  master.type = 'checkbox';
+  master.checked = true;
 
-  wrapper.appendChild(document.createElement('br'));
+  const label = document.createElement('span');
+  label.innerText = 'POI';
 
+  const arrow = document.createElement('button');
+  arrow.innerText = '▶';
+  arrow.style.border = 'none';
+  arrow.style.background = 'none';
+  arrow.style.cursor = 'pointer';
+
+  header.appendChild(master);
+  header.appendChild(label);
+  header.appendChild(arrow);
+
+  wrapper.appendChild(header);
+
+  // SUBMENU
+  const submenu = document.createElement('div');
+  submenu.style.display = 'none';
+  submenu.style.marginLeft = '22px';
+
+  let open = false;
+
+  arrow.onclick = () => {
+    open = !open;
+    submenu.style.display = open ? 'block' : 'none';
+    arrow.innerText = open ? '▼' : '▶';
+  };
+
+  // MASTER CONTROL
+  master.onchange = () => {
+    const enabled = master.checked;
+
+    poiState.activeCategories.clear();
+
+    submenu.querySelectorAll('input[data-type]').forEach(cb => {
+      cb.checked = enabled;
+
+      if (enabled) {
+        poiState.activeCategories.add(cb.dataset.type);
+      }
+    });
+
+    applyPOIFilter();
+  };
+
+  // ALL BUTTON
+  const all = document.createElement('div');
+  all.innerText = 'All';
+  all.style.cursor = 'pointer';
+  all.style.padding = '4px 0';
+
+  all.onclick = () => {
+
+    poiState.activeCategories.clear();
+
+    for (const cat of layerConfig.filters.category) {
+      poiState.activeCategories.add(cat);
+    }
+
+    submenu.querySelectorAll('input[data-type]').forEach(cb => {
+      cb.checked = true;
+    });
+
+    master.checked = true;
+    applyPOIFilter();
+  };
+
+  submenu.appendChild(all);
+
+  submenu.appendChild(document.createElement('hr'));
+
+  // CATEGORY CHECKBOXES
   for (const cat of layerConfig.filters.category) {
 
-    const btn = document.createElement('button');
-    btn.innerText = cat;
+    const row = document.createElement('div');
 
-    btn.onclick = () => setPOIFilter(cat);
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.dataset.type = cat;
+    cb.checked = true;
 
-    wrapper.appendChild(btn);
+    poiState.activeCategories.add(cat);
+
+    cb.onchange = () => {
+
+      if (cb.checked) {
+        poiState.activeCategories.add(cat);
+      } else {
+        poiState.activeCategories.delete(cat);
+      }
+
+      applyPOIFilter();
+
+      const total = submenu.querySelectorAll('input[data-type]').length;
+      const checked = submenu.querySelectorAll('input[data-type]:checked').length;
+
+      master.checked = total === checked;
+    };
+
+    const text = document.createElement('label');
+    text.innerText = ' ' + cat;
+
+    row.appendChild(cb);
+    row.appendChild(text);
+
+    submenu.appendChild(row);
   }
 
+  wrapper.appendChild(submenu);
   menu.appendChild(wrapper);
 }
-
 
 // -------------------------
 // MAP LOAD
@@ -221,13 +313,11 @@ map.on('load', async () => {
 
       const data = await loadJSON(layer.source.data);
 
-      // SOURCE
       map.addSource(layer.id, {
         type: 'geojson',
         data
       });
 
-      // MAIN LAYER
       map.addLayer({
         id: `${layer.id}-layer`,
         type: layer.type,
@@ -237,12 +327,10 @@ map.on('load', async () => {
 
       createLayerToggle(`${layer.id}-layer`, layer.id);
 
-      // POI FILTER UI (ONLY FOR POI)
       if (layer.id === 'poi' && layer.filters) {
         createPOIFilterUI(layer);
       }
 
-      // LABELS
       if (layer.labelField) {
 
         map.addLayer({
@@ -266,18 +354,15 @@ map.on('load', async () => {
 
     console.log("✅ All layers loaded");
 
-
     // -------------------------
-    // POPUPS (UNCHANGED SAFE VERSION)
+    // POPUPS
     // -------------------------
     map.on('click', (e) => {
 
       const features = map.queryRenderedFeatures(e.point);
-
       if (!features.length) return;
 
-      const feature = features[0];
-      const props = feature.properties || {};
+      const props = features[0].properties || {};
 
       let html = `<div style="font-family:sans-serif;font-size:12px;max-width:250px;">`;
 
@@ -287,17 +372,12 @@ map.on('load', async () => {
         html += `<i>No attributes available</i>`;
       } else {
 
-        for (const key of keys) {
+        for (const k of keys) {
 
-          const value = props[key];
+          const v = props[k];
+          if (v === null || v === undefined || v === '') continue;
 
-          if (value === null || value === undefined || value === '') continue;
-
-          html += `
-            <div style="margin-bottom:4px;">
-              <b>${key}:</b> ${String(value)}
-            </div>
-          `;
+          html += `<div><b>${k}:</b> ${String(v)}</div>`;
         }
       }
 
@@ -314,3 +394,6 @@ map.on('load', async () => {
   }
 
 });
+
+// to run: python -m http.server
+// to open: http://localhost:8000
