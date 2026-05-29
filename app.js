@@ -166,15 +166,34 @@ map.on('load', async () => {
     // -------------------------
     // INTERACTIVITY (POIs)
     // -------------------------
-    map.on('click', 'poi-layer', (e) => {
-      const p = e.features[0].properties;
+    map.on('click', (e) => {
+
+      const features = map.queryRenderedFeatures(e.point);
+
+      if (!features.length) return;
+
+      const feature = features[0];
+      const props = feature.properties;
+
+      let html = '<div style="font-family:sans-serif; font-size:12px;">';
+
+      for (const key in props) {
+        html += `<div><b>${key}:</b> ${props[key]}</div>`;
+      }
+
+      html += '</div>';
 
       new maplibregl.Popup()
         .setLngLat(e.lngLat)
-        .setHTML(`
-          <b>${p.name || 'POI'}</b><br>
-          ${p.description || ''}
-        `)
+        .setHTML(html)
+        .addTo(map);
+    
+
+      html += '</div>';
+
+      new maplibregl.Popup()
+        .setLngLat(e.lngLat)
+        .setHTML(html)
         .addTo(map);
     });
 
@@ -191,3 +210,6 @@ map.on('load', async () => {
   }
 
 });
+
+// to run: python -m http.server
+// to open: http://localhost:8000
