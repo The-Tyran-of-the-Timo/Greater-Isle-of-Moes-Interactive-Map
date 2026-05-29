@@ -22,8 +22,8 @@ const map = new maplibregl.Map({
       }
     ]
   },
-  center: [0, 0], // change to your island center later
-  zoom: 10
+  center: [-117.3, -50.9], // island centre
+  zoom: 7
 });
 
 
