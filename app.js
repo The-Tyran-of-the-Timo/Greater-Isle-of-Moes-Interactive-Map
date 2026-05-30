@@ -220,16 +220,27 @@ function createPOIFilterUI(layerConfig) {
 
   // MASTER CONTROL
   master.onchange = () => {
+
     const enabled = master.checked;
+
+    // toggle entire POI layer
+    toggleLayer(
+      `${layerConfig.id}-layer`,
+      enabled
+    );
 
     poiState.activeCategories.clear();
 
     submenu.querySelectorAll('input[data-type]').forEach(cb => {
+
       cb.checked = enabled;
 
       if (enabled) {
-        poiState.activeCategories.add(cb.dataset.type);
+        poiState.activeCategories.add(
+          cb.dataset.type
+        );
       }
+
     });
 
     applyPOIFilter();
@@ -240,8 +251,13 @@ function createPOIFilterUI(layerConfig) {
   all.innerText = 'All';
   all.style.cursor = 'pointer';
   all.style.padding = '4px 0';
-
+  
   all.onclick = () => {
+
+    toggleLayer(
+      `${layerConfig.id}-layer`,
+      true
+    );
 
     poiState.activeCategories.clear();
 
@@ -254,6 +270,7 @@ function createPOIFilterUI(layerConfig) {
     });
 
     master.checked = true;
+
     applyPOIFilter();
   };
 
@@ -325,10 +342,18 @@ map.on('load', async () => {
         paint: layer.style
       });
 
-      createLayerToggle(`${layer.id}-layer`, layer.id);
+      // Layers with custom filters get their own UI
+      if (layer.filters) {
 
-      if (layer.id === 'poi' && layer.filters) {
         createPOIFilterUI(layer);
+
+      } else {
+
+        createLayerToggle(
+          `${layer.id}-layer`,
+          layer.id
+        );
+
       }
 
       if (layer.labelField) {
