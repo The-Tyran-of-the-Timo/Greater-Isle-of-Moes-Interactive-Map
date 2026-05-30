@@ -7,6 +7,7 @@
 const layerConfigs = [
   {
     id: 'parks',
+    visible: false,
     source: { type: 'geojson', data: 'data/GIM_Parks.geojson' },
     type: 'fill',
     style: {
@@ -19,6 +20,7 @@ const layerConfigs = [
 
   {
     id: 'river',
+    visible: false,
     source: { type: 'geojson', data: 'data/GIM_river.geojson' },
     type: 'line',
     style: {
@@ -31,6 +33,7 @@ const layerConfigs = [
 
   {
     id: 'poi',
+    visible: false,
     source: { type: 'geojson', data: 'data/GIM_POI.geojson' },
     type: 'circle',
     style: {
@@ -47,6 +50,7 @@ const layerConfigs = [
 
   {
     id: 'outline',
+    visible: false,
     source: { type: 'geojson', data: 'data/GIM_outline_box.geojson' },
     type: 'line',
     style: {
@@ -59,6 +63,7 @@ const layerConfigs = [
 
   {
     id: 'elevation',
+    visible: true,
     source: { type: 'geojson', data: 'data/GIM_elevation.geojson' },
     type: 'fill',
     style: {
@@ -149,7 +154,7 @@ function applyPOIFilter() {
 // -------------------------
 // LAYER UI
 // -------------------------
-function createLayerToggle(layerId, label) {
+function createLayerToggle(layerId, label, layerVisible) {
 
   const menu = document.getElementById('menu');
 
@@ -157,7 +162,7 @@ function createLayerToggle(layerId, label) {
 
   const checkbox = document.createElement('input');
   checkbox.type = 'checkbox';
-  checkbox.checked = true;
+  checkbox.checked = layerVisible;
 
   checkbox.onchange = () => toggleLayer(layerId, checkbox.checked);
 
@@ -188,8 +193,8 @@ function createPOIFilterUI(layerConfig) {
 
   const master = document.createElement('input');
   master.type = 'checkbox';
-  master.checked = true;
-
+  master.checked = layerConfig.visible;
+  
   const label = document.createElement('span');
   label.innerText = 'POI';
 
@@ -314,7 +319,7 @@ function createPOIFilterUI(layerConfig) {
 // MAP LOAD
 // -------------------------
 map.on('load', async () => {
-
+  
   try {
 
     for (const layer of layerConfigs) {
@@ -330,9 +335,11 @@ map.on('load', async () => {
         id: `${layer.id}-layer`,
         type: layer.type,
         source: layer.id,
-        paint: layer.style
+        paint: layer.style,
+        layout: {
+          visibility: layer.visible ? 'visible' : 'none'
+        }
       });
-
       // Layers with custom filters get their own UI
       if (layer.filters) {
 
@@ -342,7 +349,8 @@ map.on('load', async () => {
 
         createLayerToggle(
           `${layer.id}-layer`,
-          layer.id
+          layer.id,
+          layer.visible
         );
 
       }
