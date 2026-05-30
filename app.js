@@ -246,38 +246,6 @@ function createPOIFilterUI(layerConfig) {
     applyPOIFilter();
   };
 
-  // ALL BUTTON
-  const all = document.createElement('div');
-  all.innerText = 'All';
-  all.style.cursor = 'pointer';
-  all.style.padding = '4px 0';
-  
-  all.onclick = () => {
-
-    toggleLayer(
-      `${layerConfig.id}-layer`,
-      true
-    );
-
-    poiState.activeCategories.clear();
-
-    for (const cat of layerConfig.filters.category) {
-      poiState.activeCategories.add(cat);
-    }
-
-    submenu.querySelectorAll('input[data-type]').forEach(cb => {
-      cb.checked = true;
-    });
-
-    master.checked = true;
-
-    applyPOIFilter();
-  };
-
-  submenu.appendChild(all);
-
-  submenu.appendChild(document.createElement('hr'));
-
   // CATEGORY CHECKBOXES
   for (const cat of layerConfig.filters.category) {
 
@@ -293,17 +261,40 @@ function createPOIFilterUI(layerConfig) {
     cb.onchange = () => {
 
       if (cb.checked) {
+
+        // automatically re-enable layer
+        toggleLayer(`${layerConfig.id}-layer`, true);
+
         poiState.activeCategories.add(cat);
+
       } else {
+
         poiState.activeCategories.delete(cat);
+
       }
 
       applyPOIFilter();
 
-      const total = submenu.querySelectorAll('input[data-type]').length;
-      const checked = submenu.querySelectorAll('input[data-type]:checked').length;
+      const total =
+        submenu.querySelectorAll('input[data-type]').length;
 
-      master.checked = total === checked;
+      const checked =
+        submenu.querySelectorAll('input[data-type]:checked').length;
+
+      // layer visible if at least one category active
+      master.checked = checked > 0;
+
+      if (checked > 0) {
+
+        toggleLayer(`${layerConfig.id}-layer`, true);
+        master.checked = true;
+
+      } else {
+
+        toggleLayer(`${layerConfig.id}-layer`, false);
+        master.checked = false;
+
+      }
     };
 
     const text = document.createElement('label');
